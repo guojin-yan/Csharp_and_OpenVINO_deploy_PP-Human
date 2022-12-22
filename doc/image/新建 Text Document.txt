@@ -1,0 +1,16 @@
+(my_env) C:\Users\lenovo>e:
+
+(my_env) E:\>cd E:\Paddle\PaddleUtils\paddle
+
+(my_env) E:\Paddle\PaddleUtils\paddle>python prune_paddle_model.py --model_dir mot_ppyoloe_l_36e_pipeline --model_filename model.pdmodel --params_filename model.pdiparams --output_names concat_14.tmp_0 tmp_20 --save_dir new_paddle
+Start to load paddle model...
+the len of fetch_target_names:2
+The input[1]: 'scale_factor' doesn't exist in pruned inference program, which will be ignored in new saved model.
+
+
+(my_env) E:\Paddle\PaddleUtils\paddle>paddle2onnx --model_dir new_paddle --model_filename model.pdmodel --params_filename model.pdiparams --input_shape_dict "{'image':[1,3,640,640]}" --opset_version 11 --save_file mot_ppyoloe_l_36e_pipeline.onnx
+[1;31;40m2022-11-20 22:38:52 [WARNING] [Deprecated] `paddle2onnx.command.program2onnx` will be deprecated in the future version, the recommended usage is `paddle2onnx.export`[0m
+2022-11-20 22:39:05 [INFO]      ONNX model generated is valid.
+2022-11-20 22:39:05 [INFO]      ONNX model saved in mot_ppyoloe_l_36e_pipeline.onnx
+2022-11-20 22:39:05 [INFO]      ===============Make PaddlePaddle Better!================
+2022-11-20 22:39:05 [INFO]      A little survey: https://iwenjuan.baidu.com/?code=r8hu2s
