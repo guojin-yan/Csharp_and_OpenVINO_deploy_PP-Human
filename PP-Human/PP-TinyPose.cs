@@ -8,7 +8,7 @@ using OpenVinoSharp;
 
 namespace PP_Human
 {
-    internal class TinyPose
+    public class TinyPose
     {
         // 成员变量
         private Core predictor; // 模型推理器
@@ -50,7 +50,7 @@ namespace PP_Human
             // 数据长度
             ulong input_image_length = Convert.ToUInt64(input_image_data.Length);
             // 设置图片输入
-            predictor.load_input_data(input_node_name, input_image_data, input_image_length, 2);
+            predictor.load_input_data(input_node_name, input_image_data, input_image_length, 4);
             // 模型推理
             predictor.infer();
             // 读取模型输出
@@ -179,6 +179,16 @@ namespace PP_Human
                 point_meses[p, 1] = point_meses[p, 0] * (float)scale_y_1 + point_meses[p, 1] * (float)scale_y_2 + 1.0f * (float)scale_y_3;
 
             }
+
+            //float scale_x = (float)image_size.Width/ (float)input_size.Width;
+            //float scale_y = (float)image_size.Height / (float)input_size.Height;
+            //for (int p = 0; p < 17; p++)
+            //{
+            //    point_meses[p, 0] = point_meses[p, 0] * scale_x*4;
+            //    point_meses[p, 1] = point_meses[p, 1] * scale_y*4;
+
+            //}
+
             return point_meses;
         }
 
