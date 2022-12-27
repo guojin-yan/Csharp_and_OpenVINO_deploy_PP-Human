@@ -6,7 +6,7 @@ namespace OpenVinoSharp
 {
     internal class NativeMethods
     {
-        private const string openvino_dll_path = 
+        private const string openvino_dll_path =
             @"E:\Git_space\基于Csharp和OpenVINO部署PP-Human\CppOpenVinoAPI\dll\OpenVinoSharp.dll";
 
         [DllImport(openvino_dll_path, CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
