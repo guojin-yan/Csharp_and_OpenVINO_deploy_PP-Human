@@ -229,17 +229,29 @@ extern "C"  __declspec(dllexport) void* __stdcall load_image_input_data(void* co
         // 对输入图片按照tensor输入要求进行缩放
         cv::resize(blob_image, blob_image, cv::Size(input_W, input_H), 0, 0, cv::INTER_LINEAR);
         // 图像数据归一化
-        std::vector<float> mean_values{ 0.5 * 255, 0.5 * 255, 0.5 * 255 };
-        std::vector<float> std_values{ 0.5 * 255, 0.5 * 255, 0.5 * 255 };
+        std::vector<float> std_values{ 1.0 * 255, 1.0 * 255, 1.0 * 255 };
         std::vector<cv::Mat> rgb_channels(3);
         cv::split(blob_image, rgb_channels); // 分离图片数据通道
         for (auto i = 0; i < rgb_channels.size(); i++) {
             //分通道依此对每一个通道数据进行归一化处理
-            rgb_channels[i].convertTo(rgb_channels[i], CV_32FC1, 1.0 / std_values[i], (0.0 - mean_values[i]) / std_values[i]);
+            rgb_channels[i].convertTo(rgb_channels[i], CV_32FC1, 1.0 / std_values[i], 0);
         }
         cv::merge(rgb_channels, blob_image); // 合并图片数据通道
     }
     else if (type == 2) {
+        // 对输入图片按照tensor输入要求进行缩放
+        cv::resize(blob_image, blob_image, cv::Size(input_W, input_H), 0, 0, cv::INTER_LINEAR);
+        // 图像数据归一化
+        std::vector<float> std_values{ 1.0, 1.0, 1.0 };
+        std::vector<cv::Mat> rgb_channels(3);
+        cv::split(blob_image, rgb_channels); // 分离图片数据通道
+        for (auto i = 0; i < rgb_channels.size(); i++) {
+            //分通道依此对每一个通道数据进行归一化处理
+            rgb_channels[i].convertTo(rgb_channels[i], CV_32FC1, 1.0 / std_values[i], 0);
+        }
+        cv::merge(rgb_channels, blob_image); // 合并图片数据通道
+    }
+    else if (type == 3) {
         // 获取仿射变换信息
         cv::Point center(blob_image.cols / 2, blob_image.rows / 2); // 变换中心
         cv::Size input_size(blob_image.cols, blob_image.rows); // 输入尺寸
@@ -262,6 +274,28 @@ extern "C"  __declspec(dllexport) void* __stdcall load_image_input_data(void* co
         }
         cv::merge(rgb_channels, blob_image); // 合并图片数据通道
     }
+    else if (type == 4) {
+        // 获取仿射变换信息
+        cv::Point center(blob_image.cols / 2, blob_image.rows / 2); // 变换中心
+        cv::Size input_size(blob_image.cols, blob_image.rows); // 输入尺寸
+        int rot = 0; // 角度
+        cv::Size output_size(input_W, input_H); // 输出尺寸
+
+        // 获取仿射变换矩阵
+        cv::Mat warp_mat(2, 3, CV_32FC1);
+        warp_mat = get_affine_transform(center, input_size, rot, output_size);
+        // 仿射变化
+        cv::warpAffine(blob_image, blob_image, warp_mat, output_size, cv::INTER_LINEAR);
+        // 图像数据归一化
+        std::vector<float> std_values{ 1.0, 1.0, 1.0 };
+        std::vector<cv::Mat> rgb_channels(3);
+        cv::split(blob_image, rgb_channels); // 分离图片数据通道
+        for (auto i = 0; i < rgb_channels.size(); i++) {
+            //分通道依此对每一个通道数据进行归一化处理
+            rgb_channels[i].convertTo(rgb_channels[i], CV_32FC1, 1.0 / std_values[i], 0);
+        }
+        cv::merge(rgb_channels, blob_image); // 合并图片数据通道
+    }
     // 将图片数据填充到tensor数据内存中
     fill_tensor_data_image(input_image_tensor, blob_image);
 
@@ -278,7 +312,8 @@ extern "C"  __declspec(dllexport) void* __stdcall load_input_data(void* core_ptr
     std::string input_node_name = wchar_to_string(input_node_name_wchar);
     // 读取指定节点tensor
     ov::Tensor input_image_tensor = p->infer_request.get_tensor(input_node_name);
-    int input_size = input_image_tensor.get_shape()[1]; //获得输入节点的长度
+    std::vector<size_t> input_shape = input_image_tensor.get_shape(); //获得输入节点的形状
+    int input_size = std::accumulate(input_shape.begin(), input_shape.end(), 1, std::multiplies<int>()); // 获取长度
     // 将数据填充到tensor数据内存上
     fill_tensor_data_float(input_image_tensor, input_data, input_size);
 
