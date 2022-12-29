@@ -295,7 +295,7 @@ namespace PP_Human
                 new Scalar(0, 85, 255), new Scalar(0, 0, 255), new Scalar(85, 0, 255), new Scalar(170, 0, 255),
                 new Scalar(255, 0, 255), new Scalar(255, 0, 170), new Scalar(255, 0, 85) };
             // 绘制阈值
-            double visual_thresh = 0.4;
+            double visual_thresh = 0.0000;
             // 绘制关键点
             for (int p = 0; p < 17; p++)
             {
