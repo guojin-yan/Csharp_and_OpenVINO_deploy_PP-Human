@@ -27,7 +27,7 @@ namespace PP_Human
 
 
 
-        public List<Rect> predict(Mat image)
+        public ResBboxs predict(Mat image)
         {
             // 设置图片输入
             // 图片数据解码
@@ -49,11 +49,11 @@ namespace PP_Human
             // 读取预测框
             float[] result_box = predictor.read_infer_result<float>(output_node_name_1, 4 * output_length);
             // 处理模型推理数据
-            List<Rect> boxes_result = process_result(results_con, result_box, scale_factor);
-            return boxes_result;
+            ResBboxs result = process_result(results_con, result_box, scale_factor);
+            return result;
         }
 
-        private List<Rect> process_result(float[] results_con, float[] result_box, Point2d scale_factor)
+        private ResBboxs process_result(float[] results_con, float[] result_box, Point2d scale_factor)
         {
             // 处理预测结果
             List<float> confidences = new List<float>();
@@ -69,21 +69,31 @@ namespace PP_Human
             // 非极大值抑制获取结果候选框
             int[] indexes = new int[boxes.Count];
             CvDnn.NMSBoxes(boxes, confidences, 0.5f, 0.5f, out indexes);
-            // 提取合格的预测框
+            // 提取合格的结果
             List<Rect> boxes_result = new List<Rect>();
+            List<float> con_result = new List<float>();
+            List<int> clas_result = new List<int>();
             for (int i = 0; i < indexes.Length; i++)
             {
                 boxes_result.Add(boxes[indexes[i]]);
+                con_result.Add(confidences[indexes[i]]);
             }
-            return boxes_result;
+            return new ResBboxs(boxes_result, con_result.ToArray(),clas_result.ToArray());
         }
 
-        public void draw_boxes(List<Rect> boxes, ref Mat image) 
+        public void draw_boxes(ResBboxs result, ref Mat image) 
         {
-            for (int i = 0; i < boxes.Count; i++) 
+            for (int i = 0; i < result.bboxs.Count; i++) 
             {
-                Cv2.Rectangle(image, boxes[i], new Scalar(255, 0, 0), 2);
+                Cv2.Rectangle(image, result.bboxs[i], new Scalar(255, 0, 0), 2);
+                Cv2.PutText(image, "score: " + result.scores[i].ToString(), new Point(result.bboxs[i].X, result.bboxs[i].Y - 10),
+                    HersheyFonts.HersheySimplex, 0.5, new Scalar(0, 0, 255));
             }
+        }
+
+        public void release() 
+        {
+            predictor.delet();
         }
 
     }
