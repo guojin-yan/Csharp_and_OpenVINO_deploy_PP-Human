@@ -282,7 +282,7 @@ extern "C"  __declspec(dllexport) void* __stdcall load_image_input_data(void* co
         cv::Size output_size(input_W, input_H); // 输出尺寸
 
         // 获取仿射变换矩阵
-        cv::Mat warp_mat(2, 3, CV_32FC1);
+        cv::Mat warp_mat;
         warp_mat = get_affine_transform(center, input_size, rot, output_size);
         // 仿射变化
         cv::warpAffine(blob_image, blob_image, warp_mat, output_size, cv::INTER_LINEAR);
