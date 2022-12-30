@@ -66,6 +66,50 @@ namespace PP_Human
             return points;
 
         }
+
+        /// <summary>
+        /// 裁剪关键点识别区域
+        /// </summary>
+        /// <param name="source_image">原图片</param>
+        /// <param name="rects">矩形区域数组</param>
+        /// <returns>文字区域mat</returns>
+        public List<Mat> get_point_roi(Mat source_image, List<Rect> person_rects, out List<Rect> point_rects)
+        {
+            Mat image = source_image.Clone();
+            List<Mat> rois = new List<Mat>();
+            point_rects = new List<Rect>();
+
+            for (int r = 0; r < person_rects.Count; r++)
+            {
+                Point locate = person_rects[r].Location;
+                int width = person_rects[r].Width;
+                int height = person_rects[r].Height;
+                double centre_X = locate.X + width * 0.5;
+                double centre_Y = locate.Y + height * 0.5;
+                double nwidth = width * 1.3;
+                double nheight = height * 1.3;
+                if (nheight > (nwidth * 4.0 / 3.0))
+                {
+                    nwidth = nheight * 0.75;
+                }
+                Rect rect_new = new Rect((int)(centre_X - 0.5 * nwidth),
+                    (int)(centre_Y - 0.5 * nheight), (int)nwidth, (int)nheight);
+
+                int x_min = Math.Max(0, rect_new.X);
+                int x_max = Math.Min(source_image.Cols - 1, rect_new.X + rect_new.Width);
+                int y_min = Math.Max(0, rect_new.Y);
+                int y_max = Math.Min(source_image.Rows - 1, rect_new.Y + rect_new.Height);
+
+                Rect rect = new Rect(x_min, y_min, x_max - x_min, y_max - y_min);
+
+                //Rect rect = get_IOU(sourse_rect, rect_new);
+                Mat roi = new Mat(image, rect);
+                rois.Add(roi);
+                point_rects.Add(rect);
+            }
+            return rois;
+
+        }
         /// <summary>
         /// 处理关键点预测结果
         /// </summary>
@@ -95,6 +139,8 @@ namespace PP_Human
                 point_meses[p, 0] = index_int[0];
                 point_meses[p, 1] = index_int[1];
                 point_meses[p, 2] = maxval;
+                
+
                 // 高斯滤波细化点位置
                 Mat gaussianblur = Mat.Zeros(this.output_size.Width + 2, this.output_size.Height + 2, MatType.CV_32FC1); // 高斯图像背景
                 Mat roi = new Mat(new List<int>() { this.output_size.Width, this.output_size.Height }, MatType.CV_32FC1, map); // 将点结果转为Mat数据
@@ -151,6 +197,14 @@ namespace PP_Human
                         // 获取定位偏差
                         double error_x = offset.At<Vec2d>(0)[0];
                         double error_y = offset.At<Vec2d>(0)[1];
+                        if (Math.Abs(error_x) > 10) 
+                        {
+                            error_x = 0;
+                        }
+                        if (Math.Abs(error_y) > 10) 
+                        {
+                            error_y = 0;
+                        }
                         // 修正横纵坐标
                         point_meses[p, 0] = px + (float)error_x;
                         point_meses[p, 1] = py + (float)error_y;
@@ -283,8 +337,10 @@ namespace PP_Human
         /// </summary>
         /// <param name="points"></param>
         /// <param name="image"></param>
-        public void draw_poses(float[,] points, ref Mat image)
+        public void draw_poses(KeyPoints key_points,ref Mat image)
         {
+            float[,] points = (float[,])key_points.points.Clone();
+            Rect rect = key_points.bbox;
             // 连接点关系
             int[,] edgs = new int[17, 2] { { 0, 1 }, { 0, 2}, {1, 3}, {2, 4}, {3, 5}, {4, 6}, {5, 7}, {6, 8},
                  {7, 9}, {8, 10}, {5, 11}, {6, 12}, {11, 13}, {12, 14},{13, 15 }, {14, 16 }, {11, 12 } };
@@ -299,6 +355,9 @@ namespace PP_Human
             // 绘制关键点
             for (int p = 0; p < 17; p++)
             {
+
+                points[p, 0] = points[p, 0] + rect.X;
+                points[p, 1] = points[p, 1] + rect.Y;
                 if (points[p, 2] < visual_thresh)
                 {
                     continue;
@@ -330,7 +389,7 @@ namespace PP_Human
         /// <summary>
         /// 释放推理器内存
         /// </summary>
-        void dispose()
+        public void release()
         {
             predictor.delet();
         }
