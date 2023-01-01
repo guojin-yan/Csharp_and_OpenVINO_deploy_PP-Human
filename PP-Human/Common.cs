@@ -7,12 +7,21 @@ using OpenCvSharp;
 
 namespace PP_Human
 {
+    /// <summary>
+    /// 识别检测结果类
+    /// </summary>
     public class ResBboxs 
     {
-        public List<Rect> bboxs;
-        public float[] scores;
-        public int[] classes;
+        public List<Rect> bboxs; // 预测框
+        public float[] scores; // 预测分数
+        public int[] classes; // 预测分类
 
+        /// <summary>
+        /// 构造函数
+        /// </summary>
+        /// <param name="bboxs">预测框</param>
+        /// <param name="scores">预测分数</param>
+        /// <param name="classes">预测分类</param>
         public ResBboxs(List<Rect> bboxs, float[] scores, int[] classes)
         {
             this.bboxs = bboxs;
