@@ -25,7 +25,7 @@ namespace ProjectTest
             // ONNX格式
             string yoloe_path = @"E:\Text_Model\PP-Human\poloe\model.onnx"; // 目标检测模型
             string tinypose_path = @"E:\Text_Model\PP-Human\tinypose\model.onnx"; // 关键点检测模型
-            // string tinypose_path = @"E:\Text_Model\TinyPose\tinypose_256_192\tinypose_256_192.onnx";
+            //string tinypose_path = @"E:\Text_Model\TinyPose\tinypose_256_192\tinypose_256_192.onnx";
             string STGCN_path = @"E:\Text_Model\PP-Human\STGCN\model.onnx"; // 摔倒检测模型
 
 
@@ -40,6 +40,10 @@ namespace ProjectTest
             double fps = video_capture.Fps;
             // 视频帧数
             int frame_count = video_capture.FrameCount;
+            // 创建视频保存器
+            VideoWriter video_writer = new VideoWriter(@"E:\Git_space\基于Csharp和OpenVINO部署PP-Human\output\output.avi",
+                FourCC.MP42, 30, new Size(video_capture.FrameWidth, video_capture.FrameHeight));
+
 
             Console.WriteLine("video fps: {0}, frame_count: {1}", Math.Round(fps), frame_count);
 
@@ -62,10 +66,18 @@ namespace ProjectTest
             // 可视化
             Mat visualize_frame = new Mat();
 
-            // 可视化窗口
-            Window window = new Window("image");
+            // 关键点处理类
+            MotPoint mot_point = new MotPoint();
+            // 关键点快开始预测标志位
+            bool flag_stgcn = false;
 
-            List<float[,]> points = new List<float[,]>();
+            // 可视化窗口
+            Window window = new Window("image", WindowFlags.AutoSize);
+            //window.Resize(100, 100);
+            // 摔倒预测结果
+            KeyValuePair<string, float> fall_down_result = new KeyValuePair<string, float>("unfalling", 1.0f);
+            // 设置起始帧
+            //video_capture.Set(VideoCaptureProperties.PosFrames, 100);
 
             while (true) 
             {
@@ -87,83 +99,65 @@ namespace ProjectTest
                     break;
                 }
 
-                frame_id++; // 帧号累加
+                
                 visualize_frame = frame.Clone();
 
-                // 行人检测
-                List<Rect> person_rects = yoloe_predictor.predict(frame);
-                yoloe_predictor.draw_boxes(person_rects, ref visualize_frame);
+                //****************************1. 行人区域识别  ******************************//
+                ResBboxs person_result = yoloe_predictor.predict(frame);
                 // 判断是否识别到人
-                if (person_rects.Count < 1)
+                if (person_result.bboxs.Count < 1)
                 {
                     continue;
                 }
+                // 绘制行人区域
+                yoloe_predictor.draw_boxes(person_result, ref visualize_frame);
 
+                //****************************2. 行人关键点识别  ******************************//
                 // 裁剪行人区域
-                Rect[] person_rect = person_rects.ToArray();
-                Mat[] person_roi = cut_image_roi(frame, person_rect);
-
-                // 关键点识别
-                float[,] person_point = tinyPose_predictor.predict(person_roi[0]);
-                //Console.WriteLine("{0}   {1}", person_point.GetLength(0), person_point.GetLength(1));
-                points.Add(person_point);
-
-                if (points.Count == 50) 
-                {
-                    stgcn_predictor.predict(points);
-                    points.Clear();
-                }
+                List<Rect> point_rects;
+                List<Mat> person_rois = tinyPose_predictor.get_point_roi(frame, person_result.bboxs, out point_rects);
                 
-                for (int i = 0; i < 17; i++)
+               
+                for (int p = 0; p < person_rois.Count; p++) 
                 {
-                    person_point[i, 0] = person_point[i, 0] + person_rect[0].X;
-                    person_point[i, 1] = person_point[i, 1] + person_rect[0].Y;
+                    // 关键点识别
+                    float[,] person_point = tinyPose_predictor.predict(person_rois[p]);
+                    KeyPoints key_point = new KeyPoints(frame_id, person_point, point_rects[p]);
+                    //Console.WriteLine(key_point.bbox);
+                    flag_stgcn = mot_point.add_point(key_point);
+                    tinyPose_predictor.draw_poses(key_point, ref visualize_frame);
                 }
 
-                tinyPose_predictor.draw_poses(person_point, ref visualize_frame);
+
+                //****************************3. 行人摔倒识别  ******************************//
+
+                if (flag_stgcn)
+                {
+                    List<List<KeyPoints>> predict_points = mot_point.get_points();
+                    for (int p = 0; p < predict_points.Count; p++) 
+                    {
+                        Console.WriteLine(predict_points[p].Count);
+                        fall_down_result = stgcn_predictor.predict(predict_points[p]);
+                    }
+                }
+                stgcn_predictor.draw_result(ref visualize_frame, fall_down_result, person_result.bboxs[0]);
+
                 window.ShowImage(visualize_frame);
+                video_writer.Write(visualize_frame);
                 Cv2.WaitKey(1);
 
+                frame_id++; // 帧号累加
+
             }
+
+            yoloe_predictor.release();
+            tinyPose_predictor.release();
+            stgcn_predictor.release();
+
+            visualize_frame.Release();
+            video_capture.Release();
         }
 
-        /// <summary>
-        /// 裁剪识别区域
-        /// </summary>
-        /// <param name="source_image">原图片</param>
-        /// <param name="rects">矩形区域数组</param>
-        /// <returns>文字区域mat</returns>
-        public static Mat[] cut_image_roi(Mat source_image, Rect[] rects)
-        {
-            Mat image = source_image.Clone();
-            Mat[] rois = new Mat[rects.Length];
-            Rect sourse_rect = new Rect(0, 0, source_image.Cols, source_image.Rows);
-
-            for (int r = 0; r < rects.Length; r++)
-            {
-                Point locate = rects[r].Location;
-                int width = rects[r].Width;
-                int height = rects[r].Height;
-                double centre_X = locate.X + width * 0.5;
-                double centre_Y = locate.Y + height * 0.5;
-                double nwidth = width*1.3;
-                double nheight = height * 1.3;
-                Rect rect_new = new Rect((int)(centre_X - 0.5 * nwidth), (int)(centre_Y - 0.5 * nheight), (int)nwidth, (int)nheight);
-
-                int x_min = Math.Max(0, rect_new.X);
-                int x_max = Math.Min(source_image.Cols - 1, rect_new.X + rect_new.Width);
-                int y_min = Math.Max(0, rect_new.Y);
-                int y_max = Math.Min(source_image.Rows - 1, rect_new.Y + rect_new.Height);
-
-                Rect rect = new Rect(x_min, y_min, x_max-x_min, y_max-y_min);
-
-                //Rect rect = get_IOU(sourse_rect, rect_new);
-                Mat roi = new Mat(image, rect);
-                rois[r] = roi;
-                rects[r] = rect;
-            }
-            return rois;
-
-        }
+       
     }
 }
