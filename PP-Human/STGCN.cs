@@ -17,7 +17,7 @@ namespace PP_Human
         private Core predictor; // 模型推理器
         private string input_node_name = "data_batch_0"; // 模型输入节点名称
         private string output_node_name = "reshape2_34.tmp_0"; // 模型预测输出节点名
-        private Size2f coord_size = new Size2f(384, 512);
+        private Size2f coord_size = new Size2f(512, 384);
         private int input_length = 1700; // 模型输入节点形状
         private int output_length = 2; // 模型输出数据长度
 
@@ -56,34 +56,24 @@ namespace PP_Human
         float[] preprocess_keypoint(List<KeyPoints> data) 
         { 
             float[] input_data = new float[this.input_length];
-
+            // (50, 17, 2)->(2, 50, 17)
             for (int f = 0; f < 50; f++)
             {
                 float[,] point = data[f].points;
                 Rect rect = data[f].bbox;
-                //Console.WriteLine(rect);
                 for (int g = 0; g < 17; g++)
                 {
-                    //Console.WriteLine(point[g, 0]);
-                    input_data[0 * 50 * 17 + f * 17 + g] = point[g, 0] / rect.Width * coord_size.Width;
-                    input_data[1 * 50 * 17 + f * 17 + g] = point[g, 1] / rect.Height * coord_size.Height;
+                    input_data[1 * 50 * 17 + f * 17 + g] = point[g, 0] / rect.Width * coord_size.Width;
+                    input_data[0 * 50 * 17 + f * 17 + g] = point[g, 1] / rect.Height * coord_size.Height;
                 }
             }
-
-  
-
-            for (int g = 0; g < 3; g++) 
-            {
-                Console.WriteLine(input_data[g]);
-            }
-
             return input_data;
         }
 
         public void draw_result(ref Mat image, KeyValuePair<string, float> result, Rect rect)
         {
-            Cv2.PutText(image, result.Key + ": " + result.Value.ToString(), new Point(rect.X, rect.Y + rect.Height + 10),
-                HersheyFonts.HersheySimplex, 0.5, new Scalar(0, 0, 255));
+            Cv2.PutText(image, result.Key + ": " + result.Value.ToString(), new Point(rect.X, rect.Y + rect.Height + 15),
+                HersheyFonts.HersheySimplex, 0.6, new Scalar(0, 0, 255),2);
         }
         public void release()
         {
@@ -91,3 +81,4 @@ namespace PP_Human
         }
     }
 }
+

@@ -85,9 +85,9 @@ namespace PP_Human
         {
             for (int i = 0; i < result.bboxs.Count; i++) 
             {
-                Cv2.Rectangle(image, result.bboxs[i], new Scalar(255, 0, 0), 2);
+                Cv2.Rectangle(image, result.bboxs[i], new Scalar(255, 0, 0), 3);
                 Cv2.PutText(image, "score: " + result.scores[i].ToString(), new Point(result.bboxs[i].X, result.bboxs[i].Y - 10),
-                    HersheyFonts.HersheySimplex, 0.5, new Scalar(0, 0, 255));
+                    HersheyFonts.HersheySimplex, 0.6, new Scalar(0, 0, 255), 2);
             }
         }
 

@@ -43,8 +43,6 @@ namespace PP_Human
             ulong[] input_size = new ulong[] { 1, 3, (ulong)(this.input_size.Width), (ulong)(this.input_size.Height) };
             predictor.set_input_sharp(input_node_name, input_size);
             // 设置图片输入
-            // 配置图片数据            
-            // 将图片放在矩形背景下
             // 图片数据解码
             byte[] input_image_data = image.ImEncode(".bmp");
             // 数据长度
