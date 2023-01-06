@@ -47,10 +47,10 @@ namespace ModelTimeTest
             // 测试图片
             string image_path = @"E:\Git_space\基于Csharp和OpenVINO部署PP-Human\demo\hrnet_demo.jpg";
             Mat image = Cv2.ImRead(image_path);
-            //string mode_path = @"E:\Text_Model\PP-Human\poloe\paddle1\model.pdmodel";
+            string mode_path = @"E:\Text_Model\PP-Human\poloe\paddle1\model.pdmodel";
             //string mode_path = @"E:\Text_Model\PP-Human\poloe\model.onnx"; // 目标检测模型
             //string mode_path = @"E:\Text_Model\PP-Human\poloe\ir\model.xml";
-            string mode_path = @"E:\Text_Model\PP-Human\poloe\ir_fp16\model.xml";
+            //string mode_path = @"E:\Text_Model\PP-Human\poloe\ir_fp16\model.xml";
 
 
 
