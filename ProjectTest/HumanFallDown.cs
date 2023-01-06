@@ -42,8 +42,8 @@ namespace ProjectTest
 
             // 测试视频信息
             // 视频路径
-            //string test_video = @"E:\Git_space\基于Csharp和OpenVINO部署PP-Human\demo\摔倒.mp4";
-            string test_video = @"E:\Git_space\基于Csharp和OpenVINO部署PP-Human\demo\摔倒2.mp4";
+            string test_video = @"E:\Git_space\基于Csharp和OpenVINO部署PP-Human\demo\摔倒.mp4";
+            //string test_video = @"E:\Git_space\基于Csharp和OpenVINO部署PP-Human\demo\摔倒2.mp4";
             // 视频读取器
             VideoCapture video_capture = new VideoCapture(test_video);
             // 视频帧率
